@@ -1,0 +1,20 @@
+[package]
+name = "agents-sync-daemon"
+description = "常驻同步服务：文件监听 + iroh 组网 + 本地 IPC"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+agents-sync-core = { path = "../core" }
+agents-sync-net = { path = "../net" }
+anyhow.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+notify = "8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "fs", "signal"] }
+
+[dev-dependencies]
+tempfile.workspace = true

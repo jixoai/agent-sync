@@ -1,0 +1,449 @@
+{
+  "typography": {
+    "caption": {
+      "fontSize": {
+        "pointer": 11,
+        "touch": 12
+      },
+      "lineHeight": {
+        "pointer": 16,
+        "touch": 16
+      },
+      "fontWeight": 400,
+      "letterSpacing": 0
+    },
+    "detail": {
+      "fontSize": {
+        "pointer": 12,
+        "touch": 13
+      },
+      "lineHeight": {
+        "pointer": 16,
+        "touch": 20
+      },
+      "fontWeight": 400,
+      "letterSpacing": 0
+    },
+    "body": {
+      "fontSize": {
+        "pointer": 13,
+        "touch": 15
+      },
+      "lineHeight": {
+        "pointer": 20,
+        "touch": 20
+      },
+      "fontWeight": 400,
+      "letterSpacing": 0
+    },
+    "label": {
+      "fontSize": {
+        "pointer": 14,
+        "touch": 15
+      },
+      "lineHeight": {
+        "pointer": 20,
+        "touch": 20
+      },
+      "fontWeight": 500,
+      "letterSpacing": 0
+    },
+    "title": {
+      "fontSize": {
+        "pointer": 16,
+        "touch": 16
+      },
+      "lineHeight": {
+        "pointer": 24,
+        "touch": 24
+      },
+      "fontWeight": 600,
+      "letterSpacing": 0
+    },
+    "headline": {
+      "fontSize": {
+        "pointer": 20,
+        "touch": 22
+      },
+      "lineHeight": {
+        "pointer": 28,
+        "touch": 28
+      },
+      "fontWeight": 600,
+      "letterSpacing": 0
+    },
+    "display": {
+      "fontSize": {
+        "pointer": 26,
+        "touch": 28
+      },
+      "lineHeight": {
+        "pointer": 32,
+        "touch": 36
+      },
+      "fontWeight": 600,
+      "letterSpacing": 0
+    }
+  },
+  "dimension": {
+    "shape": {
+      "control": "{radius-control}",
+      "container": "{radius-container}",
+      "modal": "{radius-modal}"
+    },
+    "size": {
+      "hit": {
+        "pointer": 0,
+        "touch": 44
+      },
+      "density": {
+        "pointer": {
+          "pad": 12,
+          "gap": 12
+        },
+        "touch": {
+          "pad": 12,
+          "gap": 12
+        }
+      },
+      "item": {
+        "pointer": {
+          "inset": 4,
+          "pad": 8
+        },
+        "touch": {
+          "inset": 8,
+          "pad": 8
+        }
+      },
+      "control": {
+        "pointer": {
+          "padding": 8,
+          "gap": 8,
+          "dot": 6,
+          "switch": "small"
+        },
+        "touch": {
+          "padding": 8,
+          "gap": 8,
+          "dot": 8,
+          "switch": "regular"
+        }
+      },
+      "height": {
+        "pointer": {
+          "sm": 24,
+          "md": 28,
+          "lg": 32
+        },
+        "touch": {
+          "sm": 32,
+          "md": 40,
+          "lg": 48
+        }
+      }
+    },
+    "stroke": {
+      "hairline": 1,
+      "control": 1
+    },
+    "focus": {
+      "style": "halo",
+      "width": 3,
+      "offset": 0
+    },
+    "icon": {
+      "pointer": {
+        "sm": 12,
+        "md": 16,
+        "lg": 20
+      },
+      "touch": {
+        "sm": 16,
+        "md": 20,
+        "lg": 24
+      }
+    },
+    "control": {
+      "field": "box",
+      "choice": "well",
+      "track": "sunk",
+      "handle": "circle"
+    }
+  },
+  "shape": {
+    "curve": "continuous",
+    "corners": {
+      "button": "radius"
+    }
+  },
+  "state": {
+    "press-scale": 1,
+    "overlay": {
+      "hover": 0,
+      "focus": 0,
+      "pressed": 0,
+      "dragged": 0
+    },
+    "ripple": false,
+    "pressed-opacity": 0.7,
+    "rest-opacity": 0.5,
+    "disabled": {
+      "content": 0.5,
+      "fill": false
+    }
+  },
+  "transition": {
+    "enter": {
+      "duration": 420,
+      "timingFunction": "out-cubic"
+    }
+  },
+  "motion": {
+    "fast": {
+      "stiffness": 1218,
+      "damping": 70
+    },
+    "default": {
+      "stiffness": 520,
+      "damping": 34
+    },
+    "slow": {
+      "stiffness": 320,
+      "damping": 30
+    },
+    "state": {
+      "duration": 120,
+      "timingFunction": "out-cubic"
+    }
+  },
+  "finishes": {
+    "shared": {
+      "card": {
+        "background": "{card}",
+        "foreground": "{foreground}",
+        "border-color": "{border}",
+        "elevation": null
+      },
+      "inset": {
+        "foreground": "{foreground}",
+        "border-color": "{border}"
+      },
+      "channel": {
+        "background": "{inset}",
+        "foreground": "{foreground}",
+        "border-color": "{border}"
+      },
+      "raised": {
+        "background": "{raised}",
+        "foreground": "{foreground}",
+        "border-color": "{line}",
+        "border-top-color": "{line}",
+        "border-bottom-color": "{line}",
+        "backdropFilter": "none",
+        "material": null
+      },
+      "plate": {
+        "background": "{field}",
+        "foreground": "{foreground}",
+        "border-color": "{line}",
+        "elevation": null
+      },
+      "overlay": {
+        "background": "{popover}",
+        "foreground": "{foreground}",
+        "backdropFilter": "none",
+        "material": null,
+        "elevation": null
+      },
+      "modal": {
+        "background": "{card}",
+        "foreground": "{foreground}",
+        "border-color": "{border}",
+        "elevation": null
+      },
+      "inverse": {
+        "background": "{inverse}",
+        "foreground": "{inverse-foreground}",
+        "backdropFilter": "none",
+        "material": null,
+        "elevation": null
+      },
+      "glass": {
+        "foreground": "{foreground}",
+        "border-color": "{line}",
+        "background": "{raised}",
+        "material": null,
+        "elevation": null
+      },
+      "accent": {
+        "foreground": "{primary-foreground}",
+        "border-color": "{brand-edge}",
+        "border-bottom-color": "{brand-edge}",
+        "pressed-opacity": 0.88,
+        "pressed-background": null,
+        "pressed-foreground": null
+      },
+      "fill": {
+        "foreground": "{primary-foreground}",
+        "gradient": null,
+        "border-color": "{brand-edge}"
+      },
+      "knob": {
+        "foreground": "{foreground}",
+        "background": "{knob}",
+        "gradient": null,
+        "border-color": "transparent",
+        "checked-background": "{primary-foreground}"
+      },
+      "hover": {
+        "foreground": "{foreground}",
+        "background": "{hover}",
+        "border-color": "{line}",
+        "border-top-color": "{line}",
+        "border-bottom-color": "{line}",
+        "elevation": null
+      },
+      "pressed": {
+        "foreground": "{foreground}",
+        "border-color": "{line}",
+        "elevation": null
+      },
+      "disabled": {
+        "background": "{raised}",
+        "foreground": "{foreground}",
+        "border-color": "{border}"
+      }
+    },
+    "light": {
+      "card": {
+        "shadow": "0 1px 2px oklch(0.25 0.03 265 / 0.06), 0 12px 32px -14px oklch(0.3 0.06 265 / 0.28)"
+      },
+      "inset": {
+        "shadow": "inset 0 1px 1.5px oklch(0.3 0.06 265 / 0.14), inset 0 -1px 0 oklch(1 0 0 / 0.85)"
+      },
+      "channel": {
+        "shadow": "inset 0 1px 1.5px oklch(0.3 0.06 265 / 0.14), inset 0 -1px 0 oklch(1 0 0 / 0.85)"
+      },
+      "raised": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35), 0 1px 2px oklch(0.25 0.03 265 / 0.06)"
+      },
+      "plate": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35), 0 1px 2px oklch(0.25 0.03 265 / 0.06)"
+      },
+      "overlay": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 oklch(0.38 0.03 265 / 0.16), 0 24px 60px -18px oklch(0.3 0.06 265 / 0.28), 0 6px 16px -6px oklch(0.25 0.03 265 / 0.14)",
+        "border-color": "oklch(0.38 0.03 265 / 0.22)"
+      },
+      "modal": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 oklch(0.38 0.03 265 / 0.16), 0 24px 60px -18px oklch(0.3 0.06 265 / 0.28), 0 6px 16px -6px oklch(0.25 0.03 265 / 0.14)"
+      },
+      "inverse": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 oklch(0.38 0.03 265 / 0.16), 0 24px 60px -18px oklch(0.3 0.06 265 / 0.28), 0 6px 16px -6px oklch(0.25 0.03 265 / 0.14)",
+        "border-color": "oklch(0.38 0.03 265 / 0.22)"
+      },
+      "glass": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35), 0 1px 2px oklch(0.25 0.03 265 / 0.06)",
+        "backdropFilter": "blur(14px) saturate(180%)"
+      },
+      "accent": {
+        "background": "oklch(from {primary} l c h / 0.88)",
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.3), inset 0 -1px 0 oklch(0 0 0 / 0.203), inset 0 0 0 1px oklch(1 0 0 / 0.07), 0 1px 2px oklch(0.25 0.03 265 / 0.06), 0 8px 18px -9px oklch(0.3 0.06 265 / 0.28)"
+      },
+      "fill": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.3), inset 0 -1px 0 oklch(0 0 0 / 0.203), inset 0 0 0 1px oklch(1 0 0 / 0.07), 0 1px 2px oklch(0.25 0.03 265 / 0.06), 0 8px 18px -9px oklch(0.3 0.06 265 / 0.28)",
+        "background": "oklch(from {primary} l c h / 0.88)"
+      },
+      "knob": {
+        "shadow": "0 1px 2px oklch(0.25 0.03 265 / 0.06)"
+      },
+      "hover": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35), 0 1px 2px oklch(0.25 0.03 265 / 0.06)"
+      },
+      "pressed": {
+        "shadow": "inset 0 1px 1.5px oklch(0.3 0.06 265 / 0.14), inset 0 -1px 0 oklch(1 0 0 / 0.85)",
+        "background": "oklch(from {muted} l c h / 0.26)"
+      },
+      "disabled": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35), 0 1px 2px oklch(0.25 0.03 265 / 0.06)"
+      }
+    },
+    "dark": {
+      "card": {
+        "shadow": "0 1px 2px oklch(0 0 0 / 0.1), 0 12px 32px -14px oklch(0 0 0 / 0.6)"
+      },
+      "inset": {
+        "shadow": "inset 0 1px 1.5px oklch(0 0 0 / 0.38), inset 0 -1px 0 oklch(1 0 0 / 0.09)"
+      },
+      "channel": {
+        "shadow": "inset 0 1px 1.5px oklch(0 0 0 / 0.38), inset 0 -1px 0 oklch(1 0 0 / 0.09)"
+      },
+      "raised": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.1)"
+      },
+      "plate": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.1)"
+      },
+      "overlay": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.16), 0 24px 60px -18px oklch(0 0 0 / 0.6), 0 6px 16px -6px oklch(0 0 0 / 0.22)",
+        "border-color": "oklch(1 0 0 / 0.06)"
+      },
+      "modal": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.16), 0 24px 60px -18px oklch(0 0 0 / 0.6), 0 6px 16px -6px oklch(0 0 0 / 0.22)"
+      },
+      "inverse": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.16), 0 24px 60px -18px oklch(0 0 0 / 0.6), 0 6px 16px -6px oklch(0 0 0 / 0.22)",
+        "border-color": "oklch(1 0 0 / 0.06)"
+      },
+      "glass": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.1)",
+        "backdropFilter": "blur(14px)"
+      },
+      "accent": {
+        "background": "oklch(from {primary} l c h / 0.86)",
+        "shadow": "inset 0 1px 0 oklch(1 0 0), inset 0 -1px 0 oklch(0 0 0 / 0.099), inset 0 0 0 1px oklch(0 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.1), 0 8px 18px -9px oklch(0 0 0 / 0.6)"
+      },
+      "fill": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0), inset 0 -1px 0 oklch(0 0 0 / 0.099), inset 0 0 0 1px oklch(0 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.1), 0 8px 18px -9px oklch(0 0 0 / 0.6)",
+        "background": "oklch(from {primary} l c h / 0.86)"
+      },
+      "knob": {
+        "shadow": "0 1px 2px oklch(0 0 0 / 0.1)"
+      },
+      "hover": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.1)"
+      },
+      "pressed": {
+        "shadow": "inset 0 1px 1.5px oklch(0 0 0 / 0.38), inset 0 -1px 0 oklch(1 0 0 / 0.09)",
+        "background": "oklch(from {muted} l c h / 0.11)"
+      },
+      "disabled": {
+        "shadow": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.1)"
+      }
+    }
+  },
+  "elevation": {
+    "light": {
+      "sm": "0 1px 2px oklch(0.25 0.03 265 / 0.06)",
+      "md": "0 1px 2px oklch(0.25 0.03 265 / 0.06), 0 12px 32px -14px oklch(0.3 0.06 265 / 0.28)",
+      "lg": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 oklch(0.38 0.03 265 / 0.16), 0 24px 60px -18px oklch(0.3 0.06 265 / 0.28), 0 6px 16px -6px oklch(0.25 0.03 265 / 0.14)",
+      "xl": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 oklch(0.38 0.03 265 / 0.16), 0 24px 60px -18px oklch(0.3 0.06 265 / 0.28), 0 6px 16px -6px oklch(0.25 0.03 265 / 0.14)",
+      "inset": "inset 0 1px 1.5px oklch(0.3 0.06 265 / 0.14), inset 0 -1px 0 oklch(1 0 0 / 0.85)",
+      "edge": {
+        "surface": "inset 0 1px 0 oklch(1 0 0 / 0.9), inset 0 0 0 1px oklch(1 0 0 / 0.35)",
+        "accent": "inset 0 1px 0 oklch(1 0 0 / 0.3), inset 0 -1px 0 oklch(0 0 0 / 0.203), inset 0 0 0 1px oklch(1 0 0 / 0.07), 0 1px 2px oklch(0.25 0.03 265 / 0.06), 0 8px 18px -9px oklch(0.3 0.06 265 / 0.28)"
+      }
+    },
+    "dark": {
+      "sm": "0 1px 2px oklch(0 0 0 / 0.1)",
+      "md": "0 1px 2px oklch(0 0 0 / 0.1), 0 12px 32px -14px oklch(0 0 0 / 0.6)",
+      "lg": "inset 0 1px 0 oklch(1 0 0 / 0.16), 0 24px 60px -18px oklch(0 0 0 / 0.6), 0 6px 16px -6px oklch(0 0 0 / 0.22)",
+      "xl": "inset 0 1px 0 oklch(1 0 0 / 0.16), 0 24px 60px -18px oklch(0 0 0 / 0.6), 0 6px 16px -6px oklch(0 0 0 / 0.22)",
+      "inset": "inset 0 1px 1.5px oklch(0 0 0 / 0.38), inset 0 -1px 0 oklch(1 0 0 / 0.09)",
+      "edge": {
+        "surface": "inset 0 1px 0 oklch(1 0 0 / 0.11), inset 0 0 0 1px oklch(1 0 0 / 0.04)",
+        "accent": "inset 0 1px 0 oklch(1 0 0), inset 0 -1px 0 oklch(0 0 0 / 0.099), inset 0 0 0 1px oklch(0 0 0 / 0.07), 0 1px 2px oklch(0 0 0 / 0.1), 0 8px 18px -9px oklch(0 0 0 / 0.6)"
+      }
+    }
+  }
+}

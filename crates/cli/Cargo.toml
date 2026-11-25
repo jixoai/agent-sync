@@ -1,0 +1,25 @@
+[package]
+name = "agents-sync"
+description = "唯一的 CLI：同步、常驻服务、菜单栏应用三态合一"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "agents-sync"
+path = "src/main.rs"
+
+[dependencies]
+agents-sync-core = { path = "../core" }
+agents-sync-net = { path = "../net" }
+agents-sync-daemon = { path = "../daemon" }
+anyhow.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+env_logger = "0.11"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time"] }
+
+[dev-dependencies]
+tempfile.workspace = true

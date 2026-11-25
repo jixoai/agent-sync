@@ -1,0 +1,16 @@
+[package]
+name = "nsh-app-asui"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+nsh-core = "0.6.1"
+nsh-base = "0.6.1"
+serde_json = "1"
+toml = "0.9"
+# 与 CLI/daemon 共用同一套路径与配置模型：UI 不重复实现 schema，
+# 否则两边迟早对「prune 默认值」这类事给出不同答案。
+agents-sync-core = { path = "../crates/core" }

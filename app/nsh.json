@@ -1,0 +1,25 @@
+{
+  "name": "AgentsSync",
+  "id": "dev.gaubee.agents-sync",
+  "version": "1.0.0",
+  "build": 1,
+  "rust": ".",
+  "theme": "./theme.json",
+  "resolve": {
+    "alias": {
+      "@": "./"
+    }
+  },
+  "macos": {
+    "activationPolicy": "accessory"
+  },
+  "window": {
+    "defaultSize": {
+      "width": 380,
+      "height": 500
+    },
+    "titleBar": {
+      "style": "hidden"
+    }
+  }
+}

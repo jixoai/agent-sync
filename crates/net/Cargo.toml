@@ -1,0 +1,15 @@
+[package]
+name = "agents-sync-net"
+description = "iroh 组网：把对端 sshd 映射到本机回环端口，并提供广播 RPC"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+log.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
+iroh = "1.5"
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,19 @@
+[package]
+name = "agents-sync-ui"
+description = "菜单栏应用：tray 状态 + 弹出面板（nsh 0.6）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+nsh-core = "0.6"
+nsh-base = "0.6"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nsh-platform-macos = "0.6"
+
+[[bin]]
+name = "agents-sync-app"
+path = "src/main.rs"
