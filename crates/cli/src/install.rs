@@ -247,7 +247,6 @@ pub fn uninstall(home: &Path) -> Result<()> {
             .output();
         let _ = std::fs::remove_file(&p);
     }
-    let plist = launchd_plist(home);
     let bundle = bundle_path(home);
     if bundle.exists() {
         std::fs::remove_dir_all(&bundle)

@@ -240,8 +240,19 @@ impl SyncEngine {
         // rebase 会重写已经推送过的 commit id，对端下次 fetch 就看到
         // non-fast-forward（实测报 "Failed to push some bookmarks"）。
         // 直接把 dev-self 指到 main 是快进，推送永远单调前进。
-        if self.jj.bookmark_exists(dir, &self_bookmark) {
+        //
+        // 但必须**确认 main 真的包含它**再重置：merge_revsets 读取书签与
+        // 这里重置之间有竞态（用户手动 jj 提交、另一进程写入）。无条件重置
+        // 会把刚落下的提交直接丢掉——实测手动删除的文件被这样「复活」过。
+        if self.jj.bookmark_exists(dir, &self_bookmark)
+            && self.jj.is_contained(dir, &self_bookmark, "main")
+        {
             self.jj.bookmark_set(dir, &self_bookmark, "main")?;
+        } else if self.jj.bookmark_exists(dir, &self_bookmark) {
+            log::warn!(
+                "{} 有未并入 main 的提交，跳过跟随（下一轮 align 会再合）",
+                self_bookmark
+            );
         }
         Ok(())
     }
