@@ -60,6 +60,22 @@ pub fn apply_all(paths: &SyncPaths, opts: &ApplyOptions) -> Result<ApplyReport> 
     let ts = timestamp();
     report.snapshot = Some(snapshot(paths, &ts, opts.backup_keep)?);
 
+    // 首次落盘前的快照**永久保留**。
+    //
+    // 为什么：新设备第一次 pull 会用对端内容覆盖本地同名文件，那正是最需要
+    // 「事后还能找回」的时刻；而普通快照按 backup_keep 滚动删除（默认 20 份），
+    // 真出事时第一次的那份早没了（实测：iMac 首次对齐的原始版本已无从找回）。
+    let marker = paths.state_dir().join("first_snapshot");
+    if !marker.exists() {
+        if let Some(arc) = &report.snapshot {
+            let keep = paths.backups_dir().join(format!("first-{ts}.tar.gz"));
+            if std::fs::copy(arc, &keep).is_ok() {
+                let _ = std::fs::write(&marker, keep.display().to_string());
+                report.notes.push(format!("首次落盘快照已永久保留：{}", keep.display()));
+            }
+        }
+    }
+
     let settings = Settings::load(&paths.root)?;
     let agents = settings.tree("agents").cloned().unwrap_or_else(|| {
         Settings::default().tree("agents").expect("默认配置").clone()
@@ -412,6 +428,12 @@ fn prune_snapshots(dir: &Path, keep: usize) -> Result<()> {
         .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| p.extension().map(|e| e == "gz").unwrap_or(false))
+        // `first-*` 是首次落盘前的快照：永久保留，不参与滚动清理。
+        .filter(|p| {
+            !p.file_name()
+                .map(|n| n.to_string_lossy().starts_with("first-"))
+                .unwrap_or(false)
+        })
         .collect();
     arcs.sort();
     if arcs.len() > keep {

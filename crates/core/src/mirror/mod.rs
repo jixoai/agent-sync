@@ -12,6 +12,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 
 pub mod apply;
+pub mod audit;
 pub mod capture;
 
 pub use apply::{apply_all, rollback, ApplyOptions, ApplyReport};

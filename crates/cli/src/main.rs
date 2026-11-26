@@ -54,6 +54,7 @@ async fn main() -> Result<()> {
         "status" => cmd_status(paths).await,
         "sync" | "publish" | "pull" => cmd_sync(paths, &cmd).await,
         "update" => cmd_update(&paths, &args),
+        "audit" => cmd_audit(&paths, &args),
         "daemon" => cmd_daemon(paths).await,
         "app" => cmd_app(paths).await,
         "install" => cmd_install(&paths),
@@ -95,7 +96,8 @@ fn print_help() {
   status             汇总状态（daemon 在则读它）
   init               初始化仓库并建立 main 基线
   ticket [--json]    打印本机 iroh ticket
-  update [--check] [--force]  自更新（npm registry → 校验 → 替换 → 重启）
+  update [--check] [--force]  自更新（GitHub Release → 校验 → 替换 → 重启）
+  audit [--json]     只读预演：payload 落盘会新建/覆盖哪些文件（新设备接入前先看）
   enroll <user@host> 经 SSH 交换双方身份（identity 漂移后的一条命令自愈）
   net                组网诊断（本机身份 + 各 peer 可达性）
   doctor             只读体检
@@ -314,6 +316,86 @@ fn cmd_ticket(args: &[String]) -> Result<()> {
 ///
 /// 为什么放在 CLI 而不是 daemon 里单独实现：UI 的「更新」按钮、手动运维、
 /// daemon 的自动更新都调用同一条路径，行为只有一份。
+
+/// 只读预演：payload → 活目录会做什么。新设备首次拉取前先看一眼，
+/// 避免「自己的版本被对端覆盖」时毫无知觉。
+fn cmd_audit(paths: &SyncPaths, args: &[String]) -> Result<()> {
+    let report = agents_sync_core::mirror::audit::audit(paths)?;
+    if args.iter().any(|a| a == "--json") {
+        let mut overwrite = report.overwrite.clone();
+        overwrite.sort_by_key(|e| e.local_mtime);
+        let entries = |list: &[agents_sync_core::mirror::audit::Entry]| {
+            list.iter()
+                .map(|e| {
+                    serde_json::json!({
+                        "path": e.path.display().to_string(),
+                        "local_mtime": e.local_mtime,
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "create": entries(&report.create),
+                "overwrite": entries(&overwrite),
+                "identical": report.identical,
+                "skipped_symlink": report.skipped_symlink,
+            }))?
+        );
+        return Ok(());
+    }
+
+    println!("payload → 活目录 预演（只读，不改任何文件）");
+    println!(
+        "  新建 {} · 覆盖 {} · 相同 {} · 跳过软链 {}",
+        report.create.len(),
+        report.overwrite.len(),
+        report.identical,
+        report.skipped_symlink
+    );
+    if !report.overwrite.is_empty() {
+        let mut list = report.overwrite.clone();
+        list.sort_by_key(|e| e.local_mtime);
+        println!("  将被覆盖（旧 → 新）：");
+        for e in list.iter().take(20) {
+            let when = e
+                .local_mtime
+                .map(ago_text)
+                .unwrap_or_else(|| "未知时间".into());
+            println!("    {when:>8}  {}", e.path.display());
+        }
+        if list.len() > 20 {
+            println!("    …另有 {} 个（--json 查看全部）", list.len() - 20);
+        }
+        println!("  提示：覆盖前会自动快照；首次落盘前的快照会永久保留。");
+    }
+    if !report.create.is_empty() {
+        println!("  将新建（前 10 个）：");
+        for e in report.create.iter().take(10) {
+            println!("    {}", e.path.display());
+        }
+        if report.create.len() > 10 {
+            println!("    …另有 {} 个", report.create.len() - 10);
+        }
+    }
+    Ok(())
+}
+
+fn ago_text(secs: u64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let d = now.saturating_sub(secs);
+    match d {
+        0..=59 => format!("{d}s 前"),
+        60..=3599 => format!("{} 分钟前", d / 60),
+        3600..=86399 => format!("{} 小时前", d / 3600),
+        _ => format!("{} 天前", d / 86400),
+    }
+}
+
 fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
     let settings = agents_sync_core::settings::Settings::load(&paths.root).unwrap_or_default();
     let mut proxy = settings.update.proxy.clone();
