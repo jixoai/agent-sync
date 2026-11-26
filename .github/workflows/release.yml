@@ -107,10 +107,9 @@ jobs:
           # 自托管 runner 的用户级 ~/.npmrc 里可能有本机代理（实测指到已关闭的端口，
           # 上传阶段 ECONNREFUSED）。发布用独立配置：直连 registry。
           NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npmrc-release
-          # 首次发布 npm 要求「先普通发布一次」才会激活 trusted publishing，
-          # 所以这里带 token；配好后可以删掉 secret 走纯 OIDC。
+          # 可选：仅在需要临时用 token 兜底时设置这个 secret；平时留空，
+          # npm 会走 GitHub OIDC（trusted publishing）。
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # 让 OIDC 兑换失败的具体原因（包不存在 / trust 不匹配）进日志
           NPM_CONFIG_LOGLEVEL: verbose
         run: |
           {
@@ -123,8 +122,10 @@ jobs:
               echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
             fi
           } > "$NPM_CONFIG_USERCONFIG"
-          # provenance 仍然生成：即使走 token，构建来源也由 OIDC 签名
-          npm publish --access public --provenance
+          # 不用 --provenance：npm 只接受 github-hosted runner 的 provenance，
+          # 自托管 runner 会被 422 拒绝（实测）。trusted publishing 本身走 OIDC，
+          # 不需要 provenance 也已是无 token 认证。
+          npm publish --access public
 
       - name: GitHub Release
         if: ${{ !inputs.dry_run && startsWith(github.ref, 'refs/tags/') }}
