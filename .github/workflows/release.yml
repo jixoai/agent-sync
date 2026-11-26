@@ -110,7 +110,6 @@ jobs:
           # 可选：仅在需要临时用 token 兜底时设置这个 secret；平时留空，
           # npm 会走 GitHub OIDC（trusted publishing）。
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_LOGLEVEL: verbose
         run: |
           {
             echo 'registry=https://registry.npmjs.org/'
