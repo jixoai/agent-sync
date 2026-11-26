@@ -14,3 +14,6 @@ app/node_modules/
 
 # 发布产物
 /dist-npm/
+
+# 本地发布产物
+/dist/
