@@ -648,7 +648,10 @@ function App() {
           ) : null}
         </View>
 
-        {hint ? <Text style={{ fontSize: 11, color: T.accent() }}>{hint}</Text> : null}
+        {/* 固定高度：提示出现/消失时不让下面的内容跳动（点击会错位） */}
+        <View style={{ height: 16, justifyContent: "center" }}>
+          <Text style={{ fontSize: 11, color: T.accent() }}>{hint}</Text>
+        </View>
 
         <View style={{ flex: 1 }}>{tc === "settings" ? settingsTab() : panelTab()}</View>
 
