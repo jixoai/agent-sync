@@ -30,7 +30,7 @@
     "taskbar": false,
     "workspaces": "all",
     "transparent": true,
-    "backdrop": "popover",
+    "backdrop": "none",
     "shadow": true,
     "titleBar": {
       "style": "hidden"

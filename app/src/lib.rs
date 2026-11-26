@@ -131,6 +131,70 @@ impl Sync {
         }
     }
 
+    /// 只查询最新版本（不安装）：托盘/设置里的「检查更新」。
+    pub fn check_update() -> String {
+        let Ok(paths) = SyncPaths::from_env() else {
+            return to_json(json!({ "ok": false, "error": "无法解析 HOME" }));
+        };
+        let settings = Settings::load(&paths.root).unwrap_or_default();
+        match agents_sync_core::update::check(&settings.update.proxy) {
+            Ok(rel) => to_json(json!({
+                "ok": true,
+                "current": agents_sync_core::update::CURRENT,
+                "latest": rel.version,
+                "newer": agents_sync_core::update::is_newer(
+                    &rel.version,
+                    agents_sync_core::update::CURRENT
+                ),
+            })),
+            Err(e) => to_json(json!({ "ok": false, "error": format!("{e:#}") })),
+        }
+    }
+
+    /// 修改自更新参数（写 `config.local.toml` 的 `[update]`）。
+    ///
+    /// 输入：`{"auto":true,"check_interval":21600,"proxy":""}`，只处理出现的键。
+    pub fn set_update(json_text: String) -> String {
+        let patch: Value = match serde_json::from_str(&json_text) {
+            Ok(v) => v,
+            Err(e) => return to_json(json!({ "ok": false, "error": format!("参数不是 JSON：{e}") })),
+        };
+        let Some(obj) = patch.as_object() else {
+            return to_json(json!({ "ok": false, "error": "参数必须是对象" }));
+        };
+        let mut applied = Vec::new();
+        let res = update_local(|root| {
+            let upd = table_at(root, &["update"]);
+            for (k, v) in obj {
+                match k.as_str() {
+                    "auto" => {
+                        if let Some(b) = v.as_bool() {
+                            upd.insert(k.clone(), toml::Value::Boolean(b));
+                            applied.push(k.clone());
+                        }
+                    }
+                    "check_interval" => {
+                        if let Some(n) = v.as_i64() {
+                            upd.insert(k.clone(), toml::Value::Integer(n));
+                            applied.push(k.clone());
+                        }
+                    }
+                    "proxy" => {
+                        if let Some(s) = v.as_str() {
+                            upd.insert(k.clone(), toml::Value::String(s.to_string()));
+                            applied.push(k.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        });
+        match res {
+            Ok(()) => to_json(json!({ "ok": true, "applied": applied })),
+            Err(e) => to_json(json!({ "ok": false, "error": e })),
+        }
+    }
+
     /// 自更新：调用已安装的 CLI（`~/.local/bin/agents-sync update`）。
     ///
     /// 为什么走 CLI 而不是在 UI 里实现一遍：更新要替换 CLI 自身、重启 launchd
@@ -247,6 +311,10 @@ fn overview_value() -> Value {
             "watch_cooldown": settings.sync.watch_cooldown,
             "backup_keep": settings.sync.backup_keep,
             "prune": settings.sync.prune,
+        },
+        "update_settings": {
+            "auto": settings.update.auto,
+            "check_interval": settings.update.check_interval,
         },
         "peers": peers,
         "trees": trees,
