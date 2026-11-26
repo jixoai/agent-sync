@@ -10,6 +10,8 @@
 // 令牌与设计稿一致（/tmp/shots/popover-{light,dark}.png）。
 import { mount, signal, Text, View } from "nsh";
 import { Button } from "nsh/base";
+import { Application, Tray, Window, displays } from "nsh/desktop";
+import trayIcon from "./assets/tray.svg";
 import { Sync } from "asui/native";
 
 const T = {
@@ -208,6 +210,62 @@ function App() {
       load();
     }, 800);
   };
+
+  // ---- 菜单栏托盘 + 弹层 ----
+  //
+  // 面板是主窗口（nsh.json 里配成 popup 形态：无边框、透明、失焦即隐），
+  // 但启动时不显示；点托盘图标才定位到图标下方弹出，再点/失焦隐藏。
+  const PANEL_W = 380;
+  const PANEL_H = 500;
+  const panelWin = () => Window.get("main");
+
+  const hidePanel = () => {
+    panelWin()?.hide();
+  };
+
+  const showPanel = (at: { origin: { x: number; y: number }; size: { width: number; height: number } } | null) => {
+    const w = panelWin();
+    if (!w) return;
+    if (at) {
+      let x = at.origin.x + at.size.width / 2 - PANEL_W / 2;
+      let y = at.origin.y + at.size.height + 6;
+      // 夹到图标所在屏幕的可用区域内，避免贴边时出屏
+      const list = displays();
+      const d =
+        list.find((dd) => at.origin.x >= dd.bounds.origin.x && at.origin.x <= dd.bounds.origin.x + dd.bounds.size.width) ??
+        list[0];
+      const vb = d?.visibleBounds;
+      if (vb) {
+        x = Math.min(Math.max(x, vb.origin.x + 6), vb.origin.x + vb.size.width - PANEL_W - 6);
+        y = Math.min(y, vb.origin.y + vb.size.height - PANEL_H - 6);
+      }
+      w.setBounds({ origin: { x: Math.round(x), y: Math.round(y) }, size: { width: PANEL_W, height: PANEL_H } });
+    }
+    w.show();
+    w.focus();
+  };
+
+  Tray.set({
+    icon: trayIcon,
+    tooltip: "agents-sync",
+    menu: [
+      { label: "立即同步", onSelect: () => act("sync") },
+      { label: "打开配置…", onSelect: openConfig },
+      { type: "separator" },
+      { label: "退出", role: "quit" },
+    ],
+    onClick: (e) => {
+      // 点图标切换：已显示就收起，否则贴着图标弹出
+      if (panelWin()?.state()?.visible) hidePanel();
+      else showPanel(e.bounds);
+    },
+  });
+
+  // 失焦与关闭键都只「收起」，不退出；退出走托盘菜单或面板里的按钮。
+  panelWin()?.on("focusChange", (ev) => {
+    if (!ev.focused) hidePanel();
+  });
+  panelWin()?.on("closePress", () => hidePanel());
 
   // ⚠️ 这里读信号（不是组件体）：nsh 只在这个表达式的求值里建立依赖。
   const content = () => {
@@ -418,7 +476,7 @@ function App() {
               <Text style={{ fontSize: 11, color: T.text3 }}>{d?.jj_version ?? "…"}</Text>
               <View style={{ flex: 1 }} />
               <Button
-                onPress={() => act("quit")}
+                onPress={() => Application.quit()}
                 style={{ paddingVertical: 2, paddingHorizontal: 4 }}
               >
                 <Text style={{ fontSize: 11, color: T.text3 }}>退出</Text>
@@ -432,7 +490,29 @@ function App() {
     );
   };
 
-  return <View style={{ flex: 1, backgroundColor: T.bg }}>{content()}</View>;
+  // 弹层本体：窗口透明且无边框，所以自己画圆角与描边。
+  return (
+    <View
+      style={{
+        flex: 1,
+        padding: 6,
+        backgroundColor: "transparent",
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: T.bg,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.10)",
+          overflow: "hidden",
+        }}
+      >
+        {content()}
+      </View>
+    </View>
+  );
 }
 
 mount(App);

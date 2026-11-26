@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <!-- 同步：两条环形箭头。macOS 把 SVG 当作 template，按菜单栏文字色渲染。 -->
+  <path d="M13.2 7.4a5.2 5.2 0 0 0-8.9-3.6" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M3.6 1.9v2.6h2.6" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M2.8 8.6a5.2 5.2 0 0 0 8.9 3.6" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M12.4 14.1v-2.6h-2.6" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -18,6 +18,20 @@
       "width": 380,
       "height": 500
     },
+    "defaultVisible": false,
+    "frame": "none",
+    "resizable": false,
+    "movable": false,
+    "minimizable": false,
+    "maximizable": false,
+    "closable": false,
+    "closeOnEscape": false,
+    "level": "floating",
+    "taskbar": false,
+    "workspaces": "all",
+    "transparent": true,
+    "backdrop": "popover",
+    "shadow": true,
     "titleBar": {
       "style": "hidden"
     }
