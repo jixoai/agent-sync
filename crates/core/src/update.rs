@@ -311,14 +311,17 @@ fn download_resumable(url: &str, out: &Path, proxy: &str) -> Result<()> {
                 "--retry",
                 "3",
                 "--retry-all-errors",
+                // 单镜像预算：慢于 30KB/s 持续 15s 就放弃，换下一个镜像；
+                // 25MB 的包在 90s 内下不完也换——挂在一个慢镜像上十几分钟
+                // 比换一个还慢（实测 gh-proxy 12 分钟只下了几 MB）。
                 "--speed-limit",
-                "10240",
+                "30720",
                 "--speed-time",
-                "20",
+                "15",
                 "-C",
                 "-",
                 "--max-time",
-                "300",
+                "120",
                 "-o",
             ])
             .arg(out)

@@ -56,6 +56,25 @@ pub struct ApplyReport {
 pub fn apply_all(paths: &SyncPaths, opts: &ApplyOptions) -> Result<ApplyReport> {
     let mut report = ApplyReport::default();
 
+    // 首次落盘保护：新设备第一次应用远端内容前，必须先看清单再确认。
+    //
+    // 背景：首台接入时我直接以 mini 为基线覆盖，没给用户留下不可回滚的备份，
+    // 也让「本地版本被覆盖」这件事不可见。现在第一次 apply 只要有覆盖就拒绝，
+    // 直到用户跑过 `agents-sync audit --accept`。
+    let first_apply = !paths.state_dir().join("first_snapshot").exists();
+    let accepted = std::env::var_os("AGENTS_SYNC_ACCEPT_REMOTE").is_some()
+        || paths.state_dir().join("accept_remote").exists();
+    if first_apply && !accepted {
+        let pre = crate::mirror::audit::audit(paths)?;
+        if !pre.overwrite.is_empty() {
+            anyhow::bail!(
+                "首次落盘会覆盖 {} 个本地文件、新建 {} 个。\n先运行 `agents-sync audit` 查看清单；确认后运行 `agents-sync audit --accept` 再同步。",
+                pre.overwrite.len(),
+                pre.create.len()
+            );
+        }
+    }
+
     // 先快照：只快照会被改动的区域，避免把 21G 运行态卷进去
     let ts = timestamp();
     report.snapshot = Some(snapshot(paths, &ts, opts.backup_keep)?);
@@ -643,6 +662,39 @@ mod tests {
         );
     }
 
+    /// 首次落盘必须先看清单：有覆盖时拒绝，`accept_remote` 标记后才放行。
+    #[test]
+    fn first_apply_refuses_to_overwrite_until_accepted() {
+        let src = tempfile::tempdir().unwrap();
+        let sp = seed(src.path());
+        capture_all(&sp, &SyncConf::default()).unwrap();
+
+        let dst = tempfile::tempdir().unwrap();
+        let dp = SyncPaths::new(dst.path());
+        copy_dir_all(&sp.payload(), &dp.payload()).unwrap();
+        // 本地版本与 payload 不同，且没有首次快照/确认标记
+        std::fs::create_dir_all(dp.live_agents()).unwrap();
+        std::fs::write(dp.live_agents().join("AGENTS.md"), "# 本地版本\n").unwrap();
+
+        let err = apply_all(&dp, &ApplyOptions { prune: false, backup_keep: 5, not_after: None })
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("首次落盘会覆盖"), "应拦截：{err}");
+        assert_eq!(
+            std::fs::read_to_string(dp.live_agents().join("AGENTS.md")).unwrap(),
+            "# 本地版本\n",
+            "被拦截时不得改动任何文件"
+        );
+
+        // 确认后放行
+        std::fs::create_dir_all(dp.state_dir()).unwrap();
+        std::fs::write(dp.state_dir().join("accept_remote"), "ok").unwrap();
+        apply_all(&dp, &ApplyOptions { prune: false, backup_keep: 5, not_after: None }).unwrap();
+        assert!(std::fs::read_to_string(dp.live_agents().join("AGENTS.md"))
+            .unwrap()
+            .contains("来源机器"));
+    }
+
     #[test]
     fn apply_writes_snapshot_and_can_rollback() {
         let src = tempfile::tempdir().unwrap();
@@ -654,6 +706,9 @@ mod tests {
         std::fs::create_dir_all(dp.live_agents()).unwrap();
         std::fs::write(dp.live_agents().join("AGENTS.md"), "# 原来的\n").unwrap();
         copy_dir_all(&sp.payload(), &dp.payload()).unwrap();
+        // 这份测试验证快照/回滚，先确认首次覆盖
+        std::fs::create_dir_all(dp.state_dir()).unwrap();
+        std::fs::write(dp.state_dir().join("accept_remote"), "ok").unwrap();
 
         let report = apply_all(&dp, &ApplyOptions { prune: false, backup_keep: 5, not_after: None }).unwrap();
         let arc = report.snapshot.expect("必须产生快照");

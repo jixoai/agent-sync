@@ -97,7 +97,7 @@ fn print_help() {
   init               初始化仓库并建立 main 基线
   ticket [--json]    打印本机 iroh ticket
   update [--check] [--force]  自更新（GitHub Release → 校验 → 替换 → 重启）
-  audit [--json]     只读预演：payload 落盘会新建/覆盖哪些文件（新设备接入前先看）
+  audit [--json|--accept]  只读预演：落盘会新建/覆盖哪些文件；--accept 确认覆盖
   enroll <user@host> 经 SSH 交换双方身份（identity 漂移后的一条命令自愈）
   net                组网诊断（本机身份 + 各 peer 可达性）
   doctor             只读体检
@@ -321,6 +321,13 @@ fn cmd_ticket(args: &[String]) -> Result<()> {
 /// 避免「自己的版本被对端覆盖」时毫无知觉。
 fn cmd_audit(paths: &SyncPaths, args: &[String]) -> Result<()> {
     let report = agents_sync_core::mirror::audit::audit(paths)?;
+    // `--accept`：确认清单，允许首次落盘覆盖本地文件。
+    if args.iter().any(|a| a == "--accept") {
+        let marker = paths.state_dir().join("accept_remote");
+        std::fs::write(&marker, format!("accepted-at {}\n", marker.display()))?;
+        println!("已确认：下一次同步会按上面的清单覆盖本地文件（旧版会进快照）。");
+        return Ok(());
+    }
     if args.iter().any(|a| a == "--json") {
         let mut overwrite = report.overwrite.clone();
         overwrite.sort_by_key(|e| e.local_mtime);

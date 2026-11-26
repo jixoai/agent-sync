@@ -75,6 +75,10 @@ fn set_remote(dir: &Path, name: &str, url: &str) {
 
 fn engine(home: &Path, id: &str) -> SyncEngine {
     let paths = SyncPaths::new(home);
+    // 测试里所有节点都视为「用户已看过 audit 清单并确认」，
+    // 这样首次落盘保护不会掩盖真正要测的合并/冲突行为。
+    std::fs::create_dir_all(paths.state_dir()).unwrap();
+    std::fs::write(paths.state_dir().join("accept_remote"), "test").unwrap();
     let mut e = SyncEngine::with_device_id(paths, id).expect("构造引擎");
     e.conf = SyncConf::default();
     e
