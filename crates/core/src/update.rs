@@ -112,20 +112,11 @@ pub fn apply(paths: &SyncPaths, proxy: &str, force: bool) -> Result<ApplyReport>
     std::fs::create_dir_all(&work).context("创建更新临时目录失败")?;
     let tgz = work.join("pkg.tgz");
 
-    let out = Command::new("/usr/bin/curl")
-        .args(["-fsSL", "--max-time", "120", "-o"])
-        .arg(&tgz)
-        .args(proxy_flags(proxy))
-        .arg(&rel.dist.tarball)
-        .output()
-        .context("启动 curl 失败")?;
-    if !out.status.success() {
-        bail!(
-            "下载失败（curl {:?}）：{}",
-            out.status.code(),
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
+    // 下载：断点续传 + 多轮重试。
+    //
+    // 为什么不能一次 `-m 120`：发布包 25MB 起，弱网下两次实测都卡在
+    // 7~10MB 超时；registry 支持 Range（206），续传能把速度波动摊平。
+    download_resumable(&rel.dist.tarball, &tgz, proxy)?;
 
     verify_shasum(&tgz, &rel.dist.shasum)?;
 
@@ -199,6 +190,42 @@ pub fn apply(paths: &SyncPaths, proxy: &str, force: bool) -> Result<ApplyReport>
         bundle,
         restarted,
     })
+}
+
+
+/// 断点续传下载：每轮限速感知（低于 10KB/s 持续 20s 就断开重试），最多 5 轮。
+fn download_resumable(url: &str, out: &Path, proxy: &str) -> Result<()> {
+    let mut last_err = String::new();
+    for attempt in 1..=5 {
+        let res = Command::new("/usr/bin/curl")
+            .args([
+                "-fsSL",
+                "--retry",
+                "3",
+                "--retry-all-errors",
+                "--speed-limit",
+                "10240",
+                "--speed-time",
+                "20",
+                "-C",
+                "-",
+                "--max-time",
+                "300",
+                "-o",
+            ])
+            .arg(out)
+            .args(proxy_flags(proxy))
+            .arg(url)
+            .output()
+            .context("启动 curl 失败")?;
+        if res.status.success() {
+            return Ok(());
+        }
+        last_err = String::from_utf8_lossy(&res.stderr).trim().to_string();
+        log::warn!("下载第 {attempt} 轮失败（已得 {} 字节）：{last_err}", out.metadata().map(|m| m.len()).unwrap_or(0));
+        std::thread::sleep(Duration::from_secs(2));
+    }
+    bail!("下载失败（5 轮重试后）：{last_err}");
 }
 
 fn proxy_flags(proxy: &str) -> Vec<String> {
