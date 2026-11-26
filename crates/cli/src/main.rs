@@ -335,7 +335,7 @@ fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
         let rel = agents_sync_core::update::check(&proxy, &mirror)?;
         let newer = agents_sync_core::update::is_newer(&rel.version, current);
         println!(
-            "当前 {current}，registry {}（{}）",
+            "当前 {current}，release {}（{}）",
             rel.version,
             if newer { "可更新" } else { "已是最新" }
         );

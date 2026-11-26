@@ -108,6 +108,49 @@ async function ensureBinary() {
   return dest;
 }
 
+/** 读一个二进制的版本（`agents-sync x.y.z`），失败返回 null。 */
+function binaryVersion(bin) {
+  const { spawnSync } = require("node:child_process");
+  const res = spawnSync(bin, ["--version"], { encoding: "utf8" });
+  if (res.status !== 0) return null;
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(res.stdout || "");
+  return m ? m.slice(1).map(Number) : null;
+}
+
+function versionGte(a, b) {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] > b[i]) return true;
+    if (a[i] < b[i]) return false;
+  }
+  return true;
+}
+
+function installedBinary() {
+  return path.join(os.homedir(), ".local", "bin", "agents-sync");
+}
+
+/**
+ * 优先用 `~/.local/bin` 里那份（它由自更新维护）。
+ *
+ * 为什么：npm 包的版本只在 `npm i -g` 时前进，而二进制会自己更新；
+ * 若启动器永远跑缓存副本，就会出现「命令是 0.2.0、daemon 是 0.2.1」的错位。
+ * 两边比较版本，取较新的那个。
+ */
+function preferredBinary() {
+  const installed = installedBinary();
+  if (!fs.existsSync(installed)) return null;
+  const have = binaryVersion(installed);
+  if (!have) return null;
+  const want = binaryVersion(path.join(cacheRoot(), "agent-sync", `v${VERSION}`, "agents-sync"));
+  if (want && versionGte(have, want)) return installed;
+  if (!want) {
+    // 缓存里还没有：包里自带版本
+    const pkgVer = require("../package.json").version.split(".").map(Number);
+    if (versionGte(have, pkgVer)) return installed;
+  }
+  return null;
+}
+
 function run(bin, args) {
   const child = spawn(bin, args, { stdio: "inherit", env: process.env });
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
@@ -129,7 +172,7 @@ function run(bin, args) {
 
 (async () => {
   try {
-    const bin = await ensureBinary();
+    const bin = preferredBinary() || (await ensureBinary());
     run(bin, process.argv.slice(2));
   } catch (e) {
     process.stderr.write(`agents-sync: ${e.message}\n`);
