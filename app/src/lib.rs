@@ -137,7 +137,7 @@ impl Sync {
             return to_json(json!({ "ok": false, "error": "无法解析 HOME" }));
         };
         let settings = Settings::load(&paths.root).unwrap_or_default();
-        match agents_sync_core::update::check(&settings.update.proxy) {
+        match agents_sync_core::update::check(&settings.update.proxy, &settings.update.mirror) {
             Ok(rel) => to_json(json!({
                 "ok": true,
                 "current": agents_sync_core::update::CURRENT,
@@ -179,7 +179,7 @@ impl Sync {
                             applied.push(k.clone());
                         }
                     }
-                    "proxy" => {
+                    "proxy" | "mirror" => {
                         if let Some(s) = v.as_str() {
                             upd.insert(k.clone(), toml::Value::String(s.to_string()));
                             applied.push(k.clone());

@@ -69,6 +69,10 @@ fn daemon_unit(cli: &Path, home: &Path) -> String {
 
 /// 装载一个 launchd 单元（先 unload 再 load，保证配置生效）。
 fn load_unit(plist: &Path) -> bool {
+    // 测试与 CI：只验证投放结果，不碰当前用户的 launchd。
+    if std::env::var_os("AGENTS_SYNC_NO_LAUNCHD").is_some() {
+        return false;
+    }
     let _ = Command::new("/bin/launchctl")
         .args(["unload", plist.to_str().unwrap_or("")])
         .output();
@@ -149,14 +153,52 @@ fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
+/// `build.rs` 在打包发布时写入的 `AgentsSync.app` 压缩包。
+///
+/// 分发物只有一个二进制（参考 reply9842）：应用在运行时解出来，
+/// 不再作为 `lib/AgentsSync.app` 躺在 node_modules 里。
+static EMBEDDED_APP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/app.tar.gz"));
+
+/// 把内嵌的 `.app` 解到缓存目录，返回解出来的包路径。
+fn extract_embedded_app(home: &Path) -> Option<PathBuf> {
+    if EMBEDDED_APP.is_empty() {
+        return None;
+    }
+    let work = home
+        .join("Library/Caches/agents-sync/install")
+        .join(std::process::id().to_string());
+    let _ = std::fs::remove_dir_all(&work);
+    std::fs::create_dir_all(&work).ok()?;
+    let tar = work.join("app.tar.gz");
+    std::fs::write(&tar, EMBEDDED_APP).ok()?;
+    let out = Command::new("/usr/bin/tar")
+        .arg("-xzf")
+        .arg(&tar)
+        .arg("-C")
+        .arg(&work)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        log::warn!(
+            "解包内嵌应用失败：{}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        return None;
+    }
+    let app = work.join(format!("{APP_NAME}.app"));
+    app.is_dir().then_some(app)
+}
+
 pub fn install(home: &Path) -> Result<InstallReport> {
     let exe = std::env::current_exe().context("无法定位当前可执行文件")?;
     let exe = std::fs::canonicalize(&exe).unwrap_or(exe);
 
     let bundle = bundle_path(home);
 
-    // 分支一：有 nsh bundle 就整体投放（UI 由 nsh host 承载）
-    if let Some(src_app) = find_app_bundle(&exe) {
+    // 分支一：有 nsh bundle 就整体投放（UI 由 nsh host 承载）。
+    // 优先用内嵌包（发布产物），开发期退回「找旁边的 AgentsSync.app」。
+    let embedded = extract_embedded_app(home);
+    if let Some(src_app) = embedded.clone().or_else(|| find_app_bundle(&exe)) {
         if bundle.exists() {
             std::fs::remove_dir_all(&bundle)?;
         }
@@ -179,6 +221,9 @@ pub fn install(home: &Path) -> Result<InstallReport> {
         write_if_changed(&dplist, daemon_unit(&cli, home).as_bytes(), 0o644)?;
         let daemon_loaded = load_unit(&dplist);
         log::info!("daemon 单元已装载：{daemon_loaded}");
+        if let Some(dir) = embedded.as_ref().and_then(|p| p.parent()) {
+            let _ = std::fs::remove_dir_all(dir);
+        }
 
         return Ok(InstallReport { bundle, binary: runner, plist: plist_path, reloaded: loaded });
     }

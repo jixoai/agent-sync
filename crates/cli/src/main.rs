@@ -317,6 +317,7 @@ fn cmd_ticket(args: &[String]) -> Result<()> {
 fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
     let settings = agents_sync_core::settings::Settings::load(&paths.root).unwrap_or_default();
     let mut proxy = settings.update.proxy.clone();
+    let mut mirror = settings.update.mirror.clone();
     let mut check_only = false;
     let mut force = false;
     let mut it = args.iter();
@@ -325,12 +326,13 @@ fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
             "--check" => check_only = true,
             "--force" => force = true,
             "--proxy" => proxy = it.next().cloned().unwrap_or_default(),
+            "--mirror" => mirror = it.next().cloned().unwrap_or_default(),
             other => anyhow::bail!("update 不认识的选项：{other}"),
         }
     }
     let current = agents_sync_core::update::CURRENT;
     if check_only {
-        let rel = agents_sync_core::update::check(&proxy)?;
+        let rel = agents_sync_core::update::check(&proxy, &mirror)?;
         let newer = agents_sync_core::update::is_newer(&rel.version, current);
         println!(
             "当前 {current}，registry {}（{}）",
@@ -339,7 +341,7 @@ fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
         );
         return Ok(());
     }
-    let r = agents_sync_core::update::apply(paths, &proxy, force)?;
+    let r = agents_sync_core::update::apply(paths, &proxy, &mirror, force)?;
     println!("已更新 {} → {}（{}）", r.from, r.to, r.binary.display());
     if let Some(b) = &r.bundle {
         println!("app：{}", b.display());

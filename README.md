@@ -137,7 +137,9 @@ agents-sync update --check   # 只看版本
 agents-sync update           # 下载 → sha1 校验 → 原子替换 CLI/.app → 重启单元
 ```
 
-发布通道是 npm（`@jixoai/agent-sync`，trusted publishing：GitHub OIDC 换短期 token，不需要任何 npm secret）。
+发布是**双通道**：二进制走 GitHub Release（`agents-sync-v<ver>-darwin-arm64.tar.gz` +
+`SHA256SUMS.txt`），npm 只发几 KB 的 JS 启动器（trusted publishing：GitHub OIDC，
+不需要 npm secret）。二进制内部嵌着菜单栏 app：`agents-sync install` 会把它解出来。
 daemon 默认每 6 小时检查一次并**自动安装**；不想自动更新就在 `config.toml` 写：
 
 ```toml

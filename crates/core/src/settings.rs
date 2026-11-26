@@ -185,6 +185,10 @@ pub struct UpdateSettings {
     /// 查询/下载使用的代理；留空则沿用环境变量（curl 默认行为）。
     #[serde(default)]
     pub proxy: String,
+    /// 下载加速前缀，逗号分隔；`direct` 表示直连。留空用内置镜像列表
+    /// （与 npm 启动器 `AGENTS_SYNC_MIRROR` 同一套约定）。
+    #[serde(default)]
+    pub mirror: String,
 }
 
 fn d21600() -> u64 {
@@ -197,6 +201,7 @@ impl Default for UpdateSettings {
             auto: true,
             check_interval: d21600(),
             proxy: String::new(),
+            mirror: String::new(),
         }
     }
 }
@@ -249,6 +254,7 @@ prune = true
 # auto = true               # 有新版本时自动安装（daemon 空闲时执行）
 # check_interval = 21600    # 检查间隔（秒），默认 6 小时
 # proxy = ""                # 查询/下载代理；留空沿用环境变量
+# mirror = ""               # 下载加速前缀（逗号分隔，direct=直连）；留空用内置列表
 
 # 目录映射与上游仓库见默认值；要覆盖时取消注释并写全字段。
 # [[trees]]

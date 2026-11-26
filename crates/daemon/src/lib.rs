@@ -651,8 +651,11 @@ fn spawn_updater(cfg: &DaemonConfig, state: Arc<Mutex<DaemonState>>, paused: Arc
 
             let probe = {
                 let proxy = upd.proxy.clone();
-                tokio::task::spawn_blocking(move || agents_sync_core::update::check(&proxy))
-                    .await
+                let mirror = upd.mirror.clone();
+                tokio::task::spawn_blocking(move || {
+                    agents_sync_core::update::check(&proxy, &mirror)
+                })
+                .await
             };
             match probe {
                 Ok(Ok(rel)) => {
@@ -671,8 +674,9 @@ fn spawn_updater(cfg: &DaemonConfig, state: Arc<Mutex<DaemonState>>, paused: Arc
                         if upd.auto && !paused.load(Ordering::Relaxed) {
                             let p = paths.clone();
                             let proxy = upd.proxy.clone();
+                            let mirror = upd.mirror.clone();
                             match tokio::task::spawn_blocking(move || {
-                                agents_sync_core::update::apply(&p, &proxy, false)
+                                agents_sync_core::update::apply(&p, &proxy, &mirror, false)
                             })
                             .await
                             {

@@ -60,34 +60,46 @@ jobs:
           cargo -V
           nsh --version
 
-      - name: 构建 CLI
-        run: cargo build --release -p agents-sync
-
       - name: 构建并打包菜单栏应用
         working-directory: app
         run: |
           nsh build
           nsh package --target macos
 
-      - name: 组装 npm 包
+      - name: 打包待嵌入的 app
+        run: |
+          mkdir -p dist
+          tar -czf dist/AgentsSync.app.tar.gz -C app/.nsh/out AgentsSync.app
+          ls -lh dist/AgentsSync.app.tar.gz
+
+      - name: 构建 CLI（嵌入 app）
+        env:
+          AGENTS_SYNC_APP_TARBALL: ${{ github.workspace }}/dist/AgentsSync.app.tar.gz
+        run: cargo build --release -p agents-sync
+
+      - name: 组装发布产物
         env:
           V: ${{ steps.v.outputs.version }}
         run: |
           set -euo pipefail
-          rm -rf dist-npm
-          mkdir -p dist-npm/bin dist-npm/lib
-          cp target/release/agents-sync dist-npm/bin/agents-sync
-          chmod 755 dist-npm/bin/agents-sync
-          cp -R app/.nsh/out/AgentsSync.app dist-npm/lib/
-          cp npm/README.md dist-npm/README.md
+          # GitHub Release 资产：单平台压缩包 + 校验和
+          rm -rf dist-npm dist/rel && mkdir -p dist/rel dist-npm
+          cp target/release/agents-sync dist/rel/agents-sync
+          chmod 755 dist/rel/agents-sync
+          tar -czf "dist/rel/agents-sync-v$V-darwin-arm64.tar.gz" -C dist/rel agents-sync
+          ( cd dist/rel && shasum -a 256 ./*.tar.gz > SHA256SUMS.txt && rm agents-sync )
+          cat dist/rel/SHA256SUMS.txt
+
+          # npm 包：只有 JS 启动器（几 KB），二进制走 GitHub Release
+          cp -R npm/bin npm/lib npm/README.md dist-npm/
           node -e '
             const fs = require("fs");
             const p = JSON.parse(fs.readFileSync("npm/package.json", "utf8"));
             p.version = process.env.V;
             fs.writeFileSync("dist-npm/package.json", JSON.stringify(p, null, 2) + "\n");
           '
-          echo "--- 包内容 ---"
-          find dist-npm -maxdepth 2 -mindepth 1 | sort
+          echo "--- npm 包内容 ---"
+          find dist-npm -type f | sort
           du -sh dist-npm
 
       - name: 冒烟测试
@@ -95,10 +107,29 @@ jobs:
           V: ${{ steps.v.outputs.version }}
         run: |
           set -euo pipefail
-          ./dist-npm/bin/agents-sync --version
-          test "$(./dist-npm/bin/agents-sync --version)" = "agents-sync $V"
-          # 包里必须带 app，否则 install 只能装出半个形态
-          test -d dist-npm/lib/AgentsSync.app
+          TMP=$(mktemp -d)
+          tar -xzf "dist/rel/agents-sync-v$V-darwin-arm64.tar.gz" -C "$TMP"
+          test "$("$TMP/agents-sync" --version)" = "agents-sync $V"
+          HOME="$TMP/home" AGENTS_SYNC_NO_LAUNCHD=1 "$TMP/agents-sync" install
+          test -x "$TMP/home/Applications/AgentsSync.app/Contents/MacOS/AgentsSync"
+          test -f "$TMP/home/.local/bin/agents-sync"
+          rm -rf "$TMP"
+          node --check dist-npm/lib/run.js
+          node --check dist-npm/lib/download.js
+          node --check dist-npm/lib/mirror.js
+
+      - name: GitHub Release（资产先就位，启动器才能下载）
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" dist/rel/* --clobber
+          else
+            gh release create "v$V" dist/rel/* --target main --title "v$V" --generate-notes
+          fi
 
       - name: 发布到 npm
         if: ${{ !inputs.dry_run }}
@@ -116,22 +147,8 @@ jobs:
             echo 'proxy='
             echo 'https-proxy='
             echo 'noproxy=*'
-            # 空 token 不写入，避免覆盖 OIDC 路径
             if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
               echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
             fi
           } > "$NPM_CONFIG_USERCONFIG"
-          # 显式 --no-provenance：npm 在 trusted publishing 下默认自动附加 provenance，
-          # 而它只接受 github-hosted runner（自托管会 422）。显式关闭后 OIDC 认证照旧，
-          # 全程留在自托管 runner 上。
-          npm publish --access public --no-provenance
-
-      - name: GitHub Release
-        if: ${{ !inputs.dry_run && startsWith(github.ref, 'refs/tags/') }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "v${{ steps.v.outputs.version }}" \
-            --generate-notes \
-            --title "v${{ steps.v.outputs.version }}" \
-            --notes "npm: \`npm i -g @jixoa/agent-sync@${{ steps.v.outputs.version }}\`"
+          npm publish --access public

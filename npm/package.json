@@ -1,14 +1,14 @@
 {
   "name": "@jixoai/agent-sync",
-  "version": "0.1.6",
-  "description": "多设备配置同步：jj 管状态、iroh 组网、nsh 菜单栏面板。安装后运行 agents-sync install 注入菜单栏应用。",
+  "version": "0.0.0",
+  "description": "多设备配置同步：jj 管状态、iroh 组网、nsh 菜单栏面板。启动器按需从 GitHub Release 下载对应二进制。",
   "license": "MIT",
   "bin": {
-    "agents-sync": "bin/agents-sync"
+    "agents-sync": "bin/agents-sync.js"
   },
   "files": [
-    "bin",
-    "lib",
+    "bin/",
+    "lib/",
     "README.md"
   ],
   "os": [
@@ -19,6 +19,9 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
   },
   "publishConfig": {
     "access": "public"
