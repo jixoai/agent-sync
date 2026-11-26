@@ -132,7 +132,7 @@ agents-sync update --check   # 只看版本
 agents-sync update           # 下载 → sha1 校验 → 原子替换 CLI/.app → 重启单元
 ```
 
-发布通道是 npm（`@jixoai/agent-sync`，trusted publishing + provenance）。
+发布通道是 npm（`@jixoai/agent-sync`，trusted publishing：GitHub OIDC 换短期 token，不需要任何 npm secret）。
 daemon 默认每 6 小时检查一次并**自动安装**；不想自动更新就在 `config.toml` 写：
 
 ```toml
@@ -143,6 +143,19 @@ auto = false
 ```
 
 菜单栏面板会显示当前版本，检测到新版时出现「更新到 x.y.z」按钮。
+
+## 发布（CI）
+
+仓库：`jixoai/agent-sync`；`.github/workflows/release.yml` 跑在仓库级
+**self-hosted macOS runner**（Apple Silicon，原生构建 CLI + 菜单栏 app）。
+
+- 认证走 GitHub OIDC（npm `/-/npm/v1/oidc/token/exchange` 换短期 token），
+  仓库不需要 npm secret；npm 的 Trusted Publisher 绑定 `release.yml` +
+  environment `npm-publish`。
+- **不能带 `--provenance`**：npm 只接受 github-hosted runner 的 provenance
+  （自托管会 422）；显式 `--no-provenance` 可跳过，OIDC 认证照旧。
+- 触发：`gh workflow run release.yml -R jixoai/agent-sync -f version=0.1.1`
+  （或推 `v*` 标签）。构建 → 冒烟（`--version` + 包内 app 存在）→ `npm publish`。
 
 ## 故障排查
 
