@@ -151,4 +151,5 @@ jobs:
               echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
             fi
           } > "$NPM_CONFIG_USERCONFIG"
-          npm publish --access public
+          # 自托管 runner 不支持 provenance（npm 会 422）；显式关掉，OIDC 认证照旧
+          npm publish --access public --no-provenance
