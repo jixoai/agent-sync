@@ -45,8 +45,16 @@ pub struct Dist {
 }
 
 /// `latest` 元数据的 URL。npm 的 scope 用 `%2F` 编码是官方接受的写法。
+///
+/// `AGENTS_SYNC_REGISTRY` 可覆盖（测试用：本地起一个假 registry 就能完整演练
+/// 下载、校验、替换，不必真的发版）。
 pub fn latest_url() -> String {
-    format!("{REGISTRY}/{}/latest", PACKAGE.replace('/', "%2F"))
+    let base = std::env::var("AGENTS_SYNC_REGISTRY").unwrap_or_else(|_| REGISTRY.to_string());
+    format!(
+        "{}/{}/latest",
+        base.trim_end_matches('/'),
+        PACKAGE.replace('/', "%2F")
+    )
 }
 
 /// 语义化版本（只认 `x.y.z`；带预发布后缀的一律视为「不自动更新」）。
@@ -276,6 +284,10 @@ fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
 }
 
 fn kickstart(label: &str) -> bool {
+    // 测试/编排场景：只换文件、不重启（否则更新脚本会把正在跑的 daemon 打断）。
+    if std::env::var_os("AGENTS_SYNC_NO_RESTART").is_some() {
+        return false;
+    }
     let Ok(out) = Command::new("/usr/bin/id").arg("-u").output() else {
         return false;
     };
