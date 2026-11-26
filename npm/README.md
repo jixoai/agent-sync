@@ -1,4 +1,4 @@
-# @jixoa/agent-sync
+# @jixoai/agent-sync
 
 多台 Mac 之间同步 `~/.agents` / `~/.zcode` / `~/.codex` 的提示词、skills 与指令。
 
@@ -10,7 +10,7 @@
 ## 安装
 
 ```bash
-npm i -g @jixoa/agent-sync
+npm i -g @jixoai/agent-sync
 agents-sync install      # 注入 ~/Applications/AgentsSync.app + 两个 launchd 单元
 agents-sync status
 ```

@@ -22,7 +22,7 @@ use std::process::Command;
 use std::time::Duration;
 
 /// npm 包名。改它等于换发布通道，必须与 workflow 和 trusted publisher 同步改。
-pub const PACKAGE: &str = "@jixoa/agent-sync";
+pub const PACKAGE: &str = "@jixoai/agent-sync";
 const REGISTRY: &str = "https://registry.npmjs.org";
 
 /// 编译进二进制的版本（Cargo.toml）。
@@ -321,7 +321,7 @@ mod tests {
     fn latest_url_encodes_scope() {
         assert_eq!(
             latest_url(),
-            "https://registry.npmjs.org/@jixoa%2Fagent-sync/latest"
+            "https://registry.npmjs.org/@jixoai%2Fagent-sync/latest"
         );
     }
 }

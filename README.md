@@ -12,7 +12,7 @@
 ## 安装
 
 ```bash
-npm i -g @jixoa/agent-sync
+npm i -g @jixoai/agent-sync
 agents-sync install    # 注入 ~/Applications/AgentsSync.app + 两个 launchd 单元
 ```
 
@@ -26,7 +26,7 @@ crates/net     iroh 节点：TCP 转发（SSH 走它）、广播、三级地址�
 crates/daemon  FSEvents 监听 + unix socket IPC + 串行同步 + 广播
 crates/cli     argv 分派、install/uninstall、IPC 客户端、enroll
 app/           nsh (TSX) 菜单栏面板 + 原生模块 asui/native
-npm/           @jixoa/agent-sync 的包元数据（发布物由 CI 组装）
+npm/           @jixoai/agent-sync 的包元数据（发布物由 CI 组装）
 ```
 
 ## 命令
@@ -132,7 +132,7 @@ agents-sync update --check   # 只看版本
 agents-sync update           # 下载 → sha1 校验 → 原子替换 CLI/.app → 重启单元
 ```
 
-发布通道是 npm（`@jixoa/agent-sync`，trusted publishing + provenance）。
+发布通道是 npm（`@jixoai/agent-sync`，trusted publishing + provenance）。
 daemon 默认每 6 小时检查一次并**自动安装**；不想自动更新就在 `config.toml` 写：
 
 ```toml
