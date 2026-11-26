@@ -60,6 +60,8 @@ type Overview = {
   error?: string;
   device: string;
   label: string;
+  version: string;
+  update_available: string | null;
   config_path: string;
   jj_version: string;
   daemon: { running: boolean; paused: boolean; syncing: boolean; pid: number | null };
@@ -186,8 +188,25 @@ function App() {
       if (!r.ok && r.error) err.set(r.error);
       else err.set("");
     } catch (e) {
-      err(String(e));
+      err.set(String(e));
     }
+  };
+
+  // 自更新：CLI 负责校验与替换，UI 只按钮 + 结果显示。
+  const doUpdate = () => {
+    busy.set(true);
+    try {
+      const r = JSON.parse(Sync.update()) as { ok: boolean; error?: string; output?: string };
+      if (!r.ok) err.set(r.error || "更新失败");
+      else err.set("");
+    } catch (e) {
+      err.set(String(e));
+    }
+    load();
+    setTimeout(() => {
+      busy.set(false);
+      load();
+    }, 800);
   };
 
   // ⚠️ 这里读信号（不是组件体）：nsh 只在这个表达式的求值里建立依赖。
@@ -224,7 +243,26 @@ function App() {
             {d?.label ?? "读取中…"}
           </Text>
           <View style={{ flex: 1 }} />
-          <Text style={{ fontSize: 11.5, color: T.text3 }}>{headline}</Text>
+          {d?.update_available ? (
+            <Button
+              onPress={doUpdate}
+              disabled={isBusy}
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: "rgba(10,108,255,0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(10,108,255,0.30)",
+              }}
+            >
+              <Text style={{ fontSize: 10.5, color: T.accent }}>
+                {"更新到 " + d.update_available}
+              </Text>
+            </Button>
+          ) : (
+            <Text style={{ fontSize: 11.5, color: T.text3 }}>{headline}</Text>
+          )}
         </View>
 
         {/* 概览 */}
@@ -375,6 +413,7 @@ function App() {
           </Text>
           {!e ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <Text style={{ fontSize: 11, color: T.text3 }}>{"v" + (d?.version ?? "?")}</Text>
               <Text style={{ fontSize: 11, color: T.text3 }}>·</Text>
               <Text style={{ fontSize: 11, color: T.text3 }}>{d?.jj_version ?? "…"}</Text>
               <View style={{ flex: 1 }} />

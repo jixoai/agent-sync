@@ -121,7 +121,12 @@ fn find_app_bundle(exe: &Path) -> Option<PathBuf> {
         }
     }
     let dir = exe.parent()?;
-    for cand in [dir.join("AgentsSync.app"), dir.join("../app/.nsh/out/AgentsSync.app")] {
+    for cand in [
+        dir.join("AgentsSync.app"),
+        // npm 包布局：bin/agents-sync + lib/AgentsSync.app
+        dir.join("../lib/AgentsSync.app"),
+        dir.join("../app/.nsh/out/AgentsSync.app"),
+    ] {
         if cand.is_dir() {
             return Some(cand);
         }

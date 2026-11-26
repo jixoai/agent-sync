@@ -1,0 +1,116 @@
+name: release
+
+# 触发：推 v* 标签（正式发布），或手动运行（可 dry_run 只构建不发）。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "版本号（不带 v；手动触发时必填，否则用标签）"
+        required: false
+      dry_run:
+        description: "只构建不发布"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # 创建 GitHub Release
+  id-token: write # npm trusted publishing（OIDC），不需要 NPM_TOKEN
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # 自托管 runner（Apple Silicon Mac）：发布物与构建机同架构，省掉交叉编译。
+    runs-on: [self-hosted, macOS, ARM64]
+    environment: npm-publish
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 解析版本
+        id: v
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            V="${{ inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          case "$V" in
+            ""|*[!0-9.]*) echo "版本号非法：$V"; exit 1 ;;
+          esac
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "发布版本：$V"
+
+      - name: 工具链
+        run: |
+          # Node 22 + npm 11 是本机为 trusted publishing 准备的（npm <11.5 不支持 OIDC 发布）。
+          for p in "$HOME/tools/node-v22/bin" "$HOME/.cargo/bin" "$HOME/.nsh/bin" "$HOME/.local/bin" /opt/homebrew/bin; do
+            [ -d "$p" ] && echo "$p" >> "$GITHUB_PATH"
+          done
+          echo "--- 工具版本 ---"
+          node -v
+          npm -v
+          cargo -V
+          nsh --version
+
+      - name: 构建 CLI
+        run: cargo build --release -p agents-sync
+
+      - name: 构建并打包菜单栏应用
+        working-directory: app
+        run: |
+          nsh build
+          nsh package --target macos
+
+      - name: 组装 npm 包
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          rm -rf dist-npm
+          mkdir -p dist-npm/bin dist-npm/lib
+          cp target/release/agents-sync dist-npm/bin/agents-sync
+          chmod 755 dist-npm/bin/agents-sync
+          cp -R app/.nsh/out/AgentsSync.app dist-npm/lib/
+          cp npm/README.md dist-npm/README.md
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("npm/package.json", "utf8"));
+            p.version = process.env.V;
+            fs.writeFileSync("dist-npm/package.json", JSON.stringify(p, null, 2) + "\n");
+          '
+          echo "--- 包内容 ---"
+          find dist-npm -maxdepth 2 -mindepth 1 | sort
+          du -sh dist-npm
+
+      - name: 冒烟测试
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          ./dist-npm/bin/agents-sync --version
+          test "$(./dist-npm/bin/agents-sync --version)" = "agents-sync $V"
+          # 包里必须带 app，否则 install 只能装出半个形态
+          test -d dist-npm/lib/AgentsSync.app
+
+      - name: 发布到 npm
+        if: ${{ !inputs.dry_run }}
+        working-directory: dist-npm
+        run: npm publish --access public --provenance
+
+      - name: GitHub Release
+        if: ${{ !inputs.dry_run && startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" \
+            --generate-notes \
+            --title "v${{ steps.v.outputs.version }}" \
+            --notes "npm: \`npm i -g @jixoa/agent-sync@${{ steps.v.outputs.version }}\`"

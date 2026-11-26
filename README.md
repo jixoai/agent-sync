@@ -9,14 +9,24 @@
   定时 tick 只兜底丢失的广播。
 - **唯一入口**：一个 CLI。`install` 会把菜单栏应用注入 `~/Applications` 并注册 launchd。
 
+## 安装
+
+```bash
+npm i -g @jixoa/agent-sync
+agents-sync install    # 注入 ~/Applications/AgentsSync.app + 两个 launchd 单元
+```
+
+要求 macOS / Apple Silicon（CLI 与界面都是原生二进制，npm 只是分发通道）。
+
 ## 组成
 
 ```
-crates/core    采集 / 落盘 / 符号链接 / jj 与 git / 配置模型
+crates/core    采集 / 落盘 / 符号链接 / jj 与 git / 配置模型 / 自更新
 crates/net     iroh 节点：TCP 转发（SSH 走它）、广播、三级地址链
 crates/daemon  FSEvents 监听 + unix socket IPC + 串行同步 + 广播
 crates/cli     argv 分派、install/uninstall、IPC 客户端、enroll
 app/           nsh (TSX) 菜单栏面板 + 原生模块 asui/native
+npm/           @jixoa/agent-sync 的包元数据（发布物由 CI 组装）
 ```
 
 ## 命令
@@ -28,6 +38,7 @@ app/           nsh (TSX) 菜单栏面板 + 原生模块 asui/native
 | `agents-sync status` | 汇总状态；daemon 在跑就返回实时值（JSON） |
 | `agents-sync sync` | 立即同步一次（交给 daemon，避免两路同时写活目录） |
 | `agents-sync ticket [--json]` | 本机 iroh ticket |
+| `agents-sync update [--check] [--force]` | 自更新：npm registry → sha1 校验 → 替换 → 重启单元 |
 | `agents-sync enroll <user@host>` | **经 SSH 交换双方身份**，identity 漂移后的一条命令自愈 |
 | `agents-sync ping <peer-id>` | 单独验证「能不能叫醒对端」 |
 | `agents-sync net` | 组网诊断（本机身份 + 各 peer 的 ticket/端口/局域网地址） |
@@ -113,6 +124,25 @@ agents-sync ping <新设备id>              # 应当 ok
 - **删除不传播**（见上）：`prune = false` 是默认与推荐值。
 - UI 是菜单栏窗口（`ActivationPolicy::Accessory`，无 Dock 图标）；nsh 的
   `hidden` 标题栏会保留窗口左上角的红绿灯按钮，这是 AppKit 的行为。
+
+## 升级
+
+```bash
+agents-sync update --check   # 只看版本
+agents-sync update           # 下载 → sha1 校验 → 原子替换 CLI/.app → 重启单元
+```
+
+发布通道是 npm（`@jixoa/agent-sync`，trusted publishing + provenance）。
+daemon 默认每 6 小时检查一次并**自动安装**；不想自动更新就在 `config.toml` 写：
+
+```toml
+[update]
+auto = false
+# check_interval = 21600
+# proxy = ""          # 需要代理时填，例如 http://127.0.0.1:17890
+```
+
+菜单栏面板会显示当前版本，检测到新版时出现「更新到 x.y.z」按钮。
 
 ## 故障排查
 

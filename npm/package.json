@@ -1,0 +1,44 @@
+{
+  "name": "@jixoa/agent-sync",
+  "version": "0.1.0",
+  "description": "多设备配置同步：jj 管状态、iroh 组网、nsh 菜单栏面板。安装后运行 agents-sync install 注入菜单栏应用。",
+  "license": "MIT",
+  "bin": {
+    "agents-sync": "bin/agents-sync"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jixoai/agent-sync.git"
+  },
+  "homepage": "https://github.com/jixoai/agent-sync#readme",
+  "bugs": {
+    "url": "https://github.com/jixoai/agent-sync/issues"
+  },
+  "keywords": [
+    "agents",
+    "sync",
+    "jj",
+    "jujutsu",
+    "iroh",
+    "macos",
+    "menu-bar",
+    "dotfiles"
+  ]
+}

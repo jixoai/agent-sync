@@ -130,6 +130,33 @@ impl Sync {
             Err(e) => to_json(json!({ "ok": false, "error": format!("打开失败：{e}") })),
         }
     }
+
+    /// 自更新：调用已安装的 CLI（`~/.local/bin/agents-sync update`）。
+    ///
+    /// 为什么走 CLI 而不是在 UI 里实现一遍：更新要替换 CLI 自身、重启 launchd
+    /// 单元，逻辑只能有一份；UI 只负责「按一下」并把结果原样显示。
+    pub fn update() -> String {
+        let Ok(paths) = SyncPaths::from_env() else {
+            return to_json(json!({ "ok": false, "error": "无法解析 HOME" }));
+        };
+        let cli = paths.home.join(".local/bin/agents-sync");
+        if !cli.exists() {
+            return to_json(json!({ "ok": false, "error": format!("未找到 {}", cli.display()) }));
+        }
+        let out = std::process::Command::new(&cli).arg("update").output();
+        match out {
+            Ok(o) if o.status.success() => to_json(json!({
+                "ok": true,
+                "output": String::from_utf8_lossy(&o.stdout).trim().to_string(),
+            })),
+            Ok(o) => to_json(json!({
+                "ok": false,
+                "error": String::from_utf8_lossy(&o.stderr).trim().to_string(),
+                "output": String::from_utf8_lossy(&o.stdout).trim().to_string(),
+            })),
+            Err(e) => to_json(json!({ "ok": false, "error": format!("启动 CLI 失败：{e}") })),
+        }
+    }
 }
 
 // ---------- 数据组装 ----------
@@ -199,6 +226,13 @@ fn overview_value() -> Value {
         "ok": true,
         "device": device,
         "label": hostname(),
+        "version": state
+            .and_then(|s| s.get("version"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| agents_sync_core::update::CURRENT.to_string()),
+        "update_available": state.and_then(|s| s.get("update_available")).cloned().unwrap_or(Value::Null),
         "config_path": paths.root.join("config.toml").display().to_string(),
         "jj_version": jj_version(),
         "daemon": {

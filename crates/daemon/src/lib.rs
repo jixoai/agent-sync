@@ -52,6 +52,10 @@ pub struct DaemonState {
     pub watching: Vec<PathBuf>,
     pub started_at: Option<String>,
     pub syncing: bool,
+    /// 本进程的版本（UI 展示与更新判断都用它）。
+    pub version: String,
+    /// 检查到的新版本；None 表示已是最新或还没查过。
+    pub update_available: Option<String>,
 }
 
 /// CLI / UI 发来的指令。
@@ -107,6 +111,7 @@ pub async fn run(cfg: DaemonConfig) -> Result<()> {
     let state = Arc::new(Mutex::new(DaemonState {
         watching: watch_paths(&cfg.paths),
         started_at: Some(now()),
+        version: agents_sync_core::update::CURRENT.to_string(),
         ..Default::default()
     }));
 
@@ -154,6 +159,9 @@ pub async fn run(cfg: DaemonConfig) -> Result<()> {
             }
         });
     }
+
+    // ---- 自更新：定期查 npm registry ----
+    spawn_updater(&cfg, state.clone(), paused.clone());
 
     // 隧道未就绪就开始同步只会得到 connection refused，看起来像「内容没同步」。
     // 首次启动阻塞等待（有上限），之后再进入事件循环。
@@ -622,8 +630,66 @@ fn snapshot(state: &Arc<Mutex<DaemonState>>, ctx: &IpcCtx) -> serde_json::Value 
         "started_at": s.as_ref().and_then(|s| s.started_at.clone()),
         "watch_count": s.as_ref().map(|s| s.watching.len()).unwrap_or(0),
         "last": s.as_ref().and_then(|s| s.last.clone()),
+        "version": s.as_ref().map(|s| s.version.clone()).unwrap_or_default(),
+        "update_available": s.as_ref().and_then(|s| s.update_available.clone()),
         "ipc": ctx.paths.logs_dir().join("daemon.sock").display().to_string(),
     })
+}
+
+/// 定期检查 npm 上的新版本；`[update] auto = true` 时直接安装。
+///
+/// 安装会 `launchctl kickstart -k` 本单元——本进程随即被结束，新二进制接管。
+/// 因此这里不需要「更新后再恢复自身状态」：进程生命周期本来就是可丢弃的。
+fn spawn_updater(cfg: &DaemonConfig, state: Arc<Mutex<DaemonState>>, paused: Arc<AtomicBool>) {
+    let paths = cfg.paths.clone();
+    tokio::spawn(async move {
+        // 启动后等 90 秒：别和首轮同步抢网络与 CPU。
+        tokio::time::sleep(Duration::from_secs(90)).await;
+        loop {
+            let settings = agents_sync_core::settings::Settings::load(&paths.root).unwrap_or_default();
+            let upd = settings.update.clone();
+
+            let probe = {
+                let proxy = upd.proxy.clone();
+                tokio::task::spawn_blocking(move || agents_sync_core::update::check(&proxy))
+                    .await
+            };
+            match probe {
+                Ok(Ok(rel)) => {
+                    let newer =
+                        agents_sync_core::update::is_newer(&rel.version, agents_sync_core::update::CURRENT);
+                    if let Ok(mut s) = state.lock() {
+                        s.update_available = newer.then(|| rel.version.clone());
+                    }
+                    if newer {
+                        log::info!(
+                            "发现新版本 {}（当前 {}，auto={}）",
+                            rel.version,
+                            agents_sync_core::update::CURRENT,
+                            upd.auto
+                        );
+                        if upd.auto && !paused.load(Ordering::Relaxed) {
+                            let p = paths.clone();
+                            let proxy = upd.proxy.clone();
+                            match tokio::task::spawn_blocking(move || {
+                                agents_sync_core::update::apply(&p, &proxy, false)
+                            })
+                            .await
+                            {
+                                Ok(Ok(r)) => log::info!("自动更新完成：{} → {}", r.from, r.to),
+                                Ok(Err(e)) => log::warn!("自动更新失败：{e:#}"),
+                                Err(e) => log::warn!("自动更新任务失败：{e}"),
+                            }
+                        }
+                    }
+                }
+                Ok(Err(e)) => log::debug!("更新检查失败：{e:#}"),
+                Err(e) => log::debug!("更新检查任务失败：{e}"),
+            }
+
+            tokio::time::sleep(Duration::from_secs(upd.check_interval.max(600))).await;
+        }
+    });
 }
 
 fn now() -> String {

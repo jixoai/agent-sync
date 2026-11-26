@@ -22,6 +22,7 @@ pub mod mirror;
 pub mod paths;
 pub mod settings;
 pub mod sync;
+pub mod update;
 pub mod vcs;
 
 pub use config::{Device, DeviceRegistry, SyncConf};

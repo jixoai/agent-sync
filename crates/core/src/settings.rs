@@ -152,8 +152,7 @@ pub struct LocalSettings {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct PeerSettings {
-    #[serde(default)]
+pub struct PeerSettings {    #[serde(default)]
     pub ticket: String,
     /// 本机连接该 peer 时使用的回环端口（留空则按基数分配）。
     #[serde(default)]
@@ -174,6 +173,34 @@ pub struct PeerSettings {
     pub relay_url: String,
 }
 
+/// 自更新参数。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSettings {
+    /// 有新版本时自动安装（daemon 检查到后执行，最多每 `check_interval` 一次）。
+    #[serde(default = "yes")]
+    pub auto: bool,
+    /// 检查间隔（秒），默认 6 小时。
+    #[serde(default = "d21600")]
+    pub check_interval: u64,
+    /// 查询/下载使用的代理；留空则沿用环境变量（curl 默认行为）。
+    #[serde(default)]
+    pub proxy: String,
+}
+
+fn d21600() -> u64 {
+    21600
+}
+
+impl Default for UpdateSettings {
+    fn default() -> Self {
+        Self {
+            auto: true,
+            check_interval: d21600(),
+            proxy: String::new(),
+        }
+    }
+}
+
 /// 完整配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -183,6 +210,8 @@ pub struct Settings {
     pub sync: SyncSettings,
     #[serde(default)]
     pub net: NetSettings,
+    #[serde(default)]
+    pub update: UpdateSettings,
     #[serde(default = "default_trees")]
     pub trees: Vec<TreeSpec>,
     #[serde(default = "default_clones")]
@@ -216,6 +245,11 @@ prune = true
 # bind_port = 22401          # 本机 iroh 监听 UDP 端口（固定才有确定的局域网直连地址）
 # serve_target = "127.0.0.1:22"  # 暴露给对端的本机 TCP 服务（sshd）
 
+# [update]
+# auto = true               # 有新版本时自动安装（daemon 空闲时执行）
+# check_interval = 21600    # 检查间隔（秒），默认 6 小时
+# proxy = ""                # 查询/下载代理；留空沿用环境变量
+
 # 目录映射与上游仓库见默认值；要覆盖时取消注释并写全字段。
 # [[trees]]
 # name = "agents"
@@ -233,6 +267,7 @@ impl Default for Settings {
             sync_root: d_sync_root(),
             sync: SyncSettings::default(),
             net: NetSettings::default(),
+            update: UpdateSettings::default(),
             trees: default_trees(),
             clones: default_clones(),
             local: LocalSettings::default(),

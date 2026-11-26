@@ -36,6 +36,12 @@ async fn main() -> Result<()> {
     let cmd = args.first().cloned().unwrap_or_else(|| "status".into());
     args.remove(0);
 
+    // `--version` / `-V` 必须在任何路径解析之前：脚本与 npm shim 只想知道版本。
+    if matches!(cmd.as_str(), "--version" | "-V" | "version") {
+        println!("agents-sync {}", agents_sync_core::update::CURRENT);
+        return Ok(());
+    }
+
     let paths = SyncPaths::from_env()?;
     paths.ensure_runtime_dirs()?;
 
@@ -47,6 +53,7 @@ async fn main() -> Result<()> {
         "init" => cmd_init(paths).await,
         "status" => cmd_status(paths).await,
         "sync" | "publish" | "pull" => cmd_sync(paths, &cmd).await,
+        "update" => cmd_update(&paths, &args),
         "daemon" => cmd_daemon(paths).await,
         "app" => cmd_app(paths).await,
         "install" => cmd_install(&paths),
@@ -88,6 +95,7 @@ fn print_help() {
   status             汇总状态（daemon 在则读它）
   init               初始化仓库并建立 main 基线
   ticket [--json]    打印本机 iroh ticket
+  update [--check] [--force]  自更新（npm registry → 校验 → 替换 → 重启）
   enroll <user@host> 经 SSH 交换双方身份（identity 漂移后的一条命令自愈）
   net                组网诊断（本机身份 + 各 peer 可达性）
   doctor             只读体检
@@ -298,6 +306,48 @@ fn cmd_ticket(args: &[String]) -> Result<()> {
         );
     } else {
         println!("{ticket}");
+    }
+    Ok(())
+}
+
+/// 自更新：默认检查并安装；`--check` 只看；`--force` 同版本重装。
+///
+/// 为什么放在 CLI 而不是 daemon 里单独实现：UI 的「更新」按钮、手动运维、
+/// daemon 的自动更新都调用同一条路径，行为只有一份。
+fn cmd_update(paths: &SyncPaths, args: &[String]) -> Result<()> {
+    let settings = agents_sync_core::settings::Settings::load(&paths.root).unwrap_or_default();
+    let mut proxy = settings.update.proxy.clone();
+    let mut check_only = false;
+    let mut force = false;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--check" => check_only = true,
+            "--force" => force = true,
+            "--proxy" => proxy = it.next().cloned().unwrap_or_default(),
+            other => anyhow::bail!("update 不认识的选项：{other}"),
+        }
+    }
+    let current = agents_sync_core::update::CURRENT;
+    if check_only {
+        let rel = agents_sync_core::update::check(&proxy)?;
+        let newer = agents_sync_core::update::is_newer(&rel.version, current);
+        println!(
+            "当前 {current}，registry {}（{}）",
+            rel.version,
+            if newer { "可更新" } else { "已是最新" }
+        );
+        return Ok(());
+    }
+    let r = agents_sync_core::update::apply(paths, &proxy, force)?;
+    println!("已更新 {} → {}（{}）", r.from, r.to, r.binary.display());
+    if let Some(b) = &r.bundle {
+        println!("app：{}", b.display());
+    }
+    if r.restarted.is_empty() {
+        println!("未重启任何单元（launchd 未加载）；下次启动即用新版本");
+    } else {
+        println!("已重启：{}", r.restarted.join("、"));
     }
     Ok(())
 }
