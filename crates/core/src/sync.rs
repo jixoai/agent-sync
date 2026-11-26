@@ -283,15 +283,49 @@ impl SyncEngine {
 /// 为什么必须由 init 创建并提交：Rust 版里 `~/.agents/sync` 是 init 新建的目录，
 /// 不再像 bash 版那样自带 config/.gitignore。缺了它们，被 clone 过来的新设备
 /// 就没有 config/（devices.json 写不进去）、也没有 gitignore（logs/locks 会被跟踪）。
+
+/// 确保 `.gitignore` 含指定行；缺了就补在末尾（幂等）。
+fn ensure_ignore_lines(path: &std::path::Path, lines: &[&str]) -> Result<()> {
+    let text = std::fs::read_to_string(path).unwrap_or_default();
+    let present: std::collections::HashSet<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect();
+    let missing: Vec<&str> = lines
+        .iter()
+        .copied()
+        .filter(|l| !present.contains(l))
+        .collect();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    let mut out = text;
+    if !out.ends_with('\n') && !out.is_empty() {
+        out.push('\n');
+    }
+    out.push_str("# 本机配置文件（自愈补齐）：入库会让两端改动在 merge 里互斗\n");
+    for line in missing {
+        out.push_str(line);
+        out.push('\n');
+    }
+    std::fs::write(path, out)?;
+    log::info!("已补齐 .gitignore 的本机配置文件规则");
+    Ok(())
+}
+
 fn bootstrap_data_repo(paths: &SyncPaths) -> Result<()> {
     std::fs::create_dir_all(paths.config_dir())?;
 
     // 运行态与本地态不入库。这些目录每台机器各写各的，进仓库只会制造冲突。
-    let gitignore = "logs/\nlocks/\nbackups/\n.state/\n.secrets/\nconfig/devices.json\n.jj/\n**/node_modules/\n**/.DS_Store\n";
+    let gitignore = "logs/\nlocks/\nbackups/\n.state/\n.secrets/\nconfig/devices.json\nconfig.toml\nconfig.local.toml\n.jj/\n**/node_modules/\n**/.DS_Store\n";
     let p = paths.root.join(".gitignore");
     if !p.exists() {
         std::fs::write(&p, gitignore)?;
     }
+    // 自愈：这些行一旦丢失（merge 回退、手改），config.toml 会变成被跟踪文件，
+    // 随后 align 的 checkout 可能把它删掉——实测 config.local.toml 就这么丢的。
+    ensure_ignore_lines(&p, &["config.toml", "config.local.toml"])?;
 
     // payload 必须字节级一致：关闭换行转换
     let attrs = "payload/** -text\n";
