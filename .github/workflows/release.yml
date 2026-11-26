@@ -110,6 +110,8 @@ jobs:
           # 首次发布 npm 要求「先普通发布一次」才会激活 trusted publishing，
           # 所以这里带 token；配好后可以删掉 secret 走纯 OIDC。
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # 让 OIDC 兑换失败的具体原因（包不存在 / trust 不匹配）进日志
+          NPM_CONFIG_LOGLEVEL: verbose
         run: |
           {
             echo 'registry=https://registry.npmjs.org/'
