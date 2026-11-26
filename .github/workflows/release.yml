@@ -122,10 +122,10 @@ jobs:
               echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
             fi
           } > "$NPM_CONFIG_USERCONFIG"
-          # 不用 --provenance：npm 只接受 github-hosted runner 的 provenance，
-          # 自托管 runner 会被 422 拒绝（实测）。trusted publishing 本身走 OIDC，
-          # 不需要 provenance 也已是无 token 认证。
-          npm publish --access public
+          # 显式 --no-provenance：npm 在 trusted publishing 下默认自动附加 provenance，
+          # 而它只接受 github-hosted runner（自托管会 422）。显式关闭后 OIDC 认证照旧，
+          # 全程留在自托管 runner 上。
+          npm publish --access public --no-provenance
 
       - name: GitHub Release
         if: ${{ !inputs.dry_run && startsWith(github.ref, 'refs/tags/') }}
