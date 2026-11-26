@@ -103,7 +103,13 @@ jobs:
       - name: 发布到 npm
         if: ${{ !inputs.dry_run }}
         working-directory: dist-npm
-        run: npm publish --access public --provenance
+        env:
+          # 自托管 runner 的用户级 ~/.npmrc 里可能有本机代理（实测指到已关闭的端口，
+          # 上传阶段 ECONNREFUSED）。发布用独立配置：直连 registry。
+          NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/npmrc-release
+        run: |
+          printf 'registry=https://registry.npmjs.org/\nproxy=\nhttps-proxy=\nnoproxy=*\n' > "$NPM_CONFIG_USERCONFIG"
+          npm publish --access public --provenance
 
       - name: GitHub Release
         if: ${{ !inputs.dry_run && startsWith(github.ref, 'refs/tags/') }}
