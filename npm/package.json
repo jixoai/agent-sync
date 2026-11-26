@@ -1,6 +1,6 @@
 {
   "name": "@jixoa/agent-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "多设备配置同步：jj 管状态、iroh 组网、nsh 菜单栏面板。安装后运行 agents-sync install 注入菜单栏应用。",
   "license": "MIT",
   "bin": {
